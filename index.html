@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>SalmonTic Store</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    .jersey-card {
+      border: 1px solid #ddd;
+      padding: 15px;
+      margin: 10px;
+      text-align: center;
+    }
+    .jersey-img {
+      max-width: 100%;
+      height: 200px;
+      object-fit: contain;
+    }
+  </style>
+</head>
+<body>
+  <h1>SalmonTic Jersey Store</h1>
+  <div id="jerseys"></div>
+
+  <script>
+    fetch('jerseys.json')
+      .then(res => res.json())
+      .then(jerseys => {
+        let html = '';
+        jerseys.forEach(jersey => {
+          html += `
+            <div class="jersey-card">
+              <img src="${jersey.image}" class="jersey-img">
+              <h3>${jersey.name}</h3>
+              <p>$${jersey.price} | ${jersey.sizes.join(', ')}</p>
+              <a href="https://wa.me/YOUR_NUMBER?text=I%20want%20${jersey.name}">
+                Order via WhatsApp
+              </a>
+            </div>
+          `;
+        });
+        document.getElementById('jerseys').innerHTML = html;
+      });
+  </script>
+</body>
+</html>
