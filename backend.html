@@ -1,61 +1,109 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Jersey Admin</title>
+  <title>Jersey Admin - Dual Editions</title>
   <style>
-    .version-toggle {
+    .edition-toggle {
       display: flex;
       margin: 15px 0;
+    }
+    .edition-option {
+      padding: 8px 15px;
       border: 1px solid #ddd;
-      border-radius: 20px;
-      overflow: hidden;
-      width: fit-content;
-    }
-    .toggle-option {
-      padding: 8px 20px;
       cursor: pointer;
-      position: relative;
     }
-    .toggle-option:first-child {
-      border-right: 1px solid #ddd;
+    .edition-option:first-child {
+      border-radius: 4px 0 0 4px;
     }
-    .toggle-option.active {
+    .edition-option:last-child {
+      border-radius: 0 4px 4px 0;
+    }
+    .edition-option.active {
       background: #4CAF50;
       color: white;
+      border-color: #4CAF50;
     }
-    .toggle-option.active::after {
-      content: "✓";
-      margin-left: 5px;
+    .hidden {
+      display: none;
     }
   </style>
 </head>
 <body>
-
-<!-- Version Toggle -->
-<div class="version-toggle">
-  <div class="toggle-option active" onclick="selectVersion(this, 'player')">
-    Player Edition
+  <div class="card">
+    <h1>Add Jersey</h1>
+    <form id="jerseyForm">
+      <!-- Basic Info -->
+      <input type="text" name="name" placeholder="Jersey Name" required>
+      
+      <!-- Edition Type -->
+      <div class="edition-toggle">
+        <div class="edition-option active" data-edition="player">Player Edition</div>
+        <div class="edition-option" data-edition="fan">Fan Edition</div>
+      </div>
+      <input type="hidden" name="edition" value="player">
+      
+      <!-- Player Edition Fields -->
+      <div id="player-fields">
+        <input type="number" name="player_price" placeholder="Player Edition Price" step="0.01">
+        <input type="text" name="player_sku" placeholder="Player SKU">
+      </div>
+      
+      <!-- Fan Edition Fields -->
+      <div id="fan-fields" class="hidden">
+        <input type="number" name="fan_price" placeholder="Fan Edition Price" step="0.01">
+        <input type="text" name="fan_sku" placeholder="Fan SKU">
+      </div>
+      
+      <!-- Common Fields -->
+      <div>
+        <label>Sizes Available:</label>
+        <div>
+          <label><input type="checkbox" name="size" value="S"> S</label>
+          <label><input type="checkbox" name="size" value="M"> M</label>
+          <label><input type="checkbox" name="size" value="L"> L</label>
+          <label><input type="checkbox" name="size" value="XL"> XL</label>
+        </div>
+      </div>
+      
+      <button type="button" onclick="saveJersey()">Save Jersey</button>
+    </form>
   </div>
-  <div class="toggle-option" onclick="selectVersion(this, 'fan')">
-    Fan Edition
-  </div>
-</div>
-<input type="hidden" id="jerseyVersion" value="player">
 
-<script>
-  function selectVersion(element, version) {
-    // Remove active class from all options
-    document.querySelectorAll('.toggle-option').forEach(opt => {
-      opt.classList.remove('active');
+  <script>
+    // Toggle between editions
+    document.querySelectorAll('.edition-option').forEach(option => {
+      option.addEventListener('click', function() {
+        document.querySelectorAll('.edition-option').forEach(opt => 
+          opt.classList.remove('active'));
+        this.classList.add('active');
+        
+        document.querySelector('input[name="edition"]').value = this.dataset.edition;
+        document.getElementById('player-fields').classList.toggle('hidden', this.dataset.edition !== 'player');
+        document.getElementById('fan-fields').classList.toggle('hidden', this.dataset.edition !== 'fan');
+      });
     });
-    
-    // Add active class to clicked option
-    element.classList.add('active');
-    
-    // Update hidden input value
-    document.getElementById('jerseyVersion').value = version;
-  }
-</script>
 
+    // Save function
+    function saveJersey() {
+      const form = document.getElementById('jerseyForm');
+      const jersey = {
+        name: form.name.value,
+        editions: {
+          player: {
+            price: form.player_price.value,
+            sku: form.player_sku.value
+          },
+          fan: {
+            price: form.fan_price.value,
+            sku: form.fan_sku.value
+          }
+        },
+        sizes: Array.from(document.querySelectorAll('input[name="size"]:checked')).map(cb => cb.value)
+      };
+      
+      console.log('Saving:', jersey);
+      alert('Jersey saved with both editions! Check console for data structure.');
+    }
+  </script>
 </body>
 </html>
