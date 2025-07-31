@@ -1,62 +1,57 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Jersey Admin - Dual Editions</title>
+  <title>Jersey Admin - Multi-Version</title>
   <style>
-    .edition-toggle {
+    .version-tabs {
       display: flex;
       margin: 15px 0;
+      border-bottom: 1px solid #ddd;
     }
-    .edition-option {
+    .version-tab {
       padding: 8px 15px;
-      border: 1px solid #ddd;
       cursor: pointer;
+      border: 1px solid transparent;
+      margin-right: 5px;
     }
-    .edition-option:first-child {
-      border-radius: 4px 0 0 4px;
+    .version-tab.active {
+      border: 1px solid #ddd;
+      border-bottom: 1px solid white;
+      margin-bottom: -1px;
+      background: #f9f9f9;
     }
-    .edition-option:last-child {
-      border-radius: 0 4px 4px 0;
-    }
-    .edition-option.active {
-      background: #4CAF50;
-      color: white;
-      border-color: #4CAF50;
-    }
-    .hidden {
+    .version-content {
       display: none;
+      padding: 15px;
+      border: 1px solid #ddd;
+      border-top: none;
     }
+    .version-content.active {
+      display: block;
+    }
+    .version-badge {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-size: 12px;
+      margin-right: 5px;
+    }
+    .player { background: #4CAF50; color: white; }
+    .fan { background: #2196F3; color: white; }
+    .bd { background: #9C27B0; color: white; }
+    .retro { background: #FF9800; color: black; }
+    .imported { background: #607D8B; color: white; }
   </style>
 </head>
 <body>
   <div class="card">
     <h1>Add Jersey</h1>
     <form id="jerseyForm">
-      <!-- Basic Info -->
-      <input type="text" name="name" placeholder="Jersey Name" required>
-      
-      <!-- Edition Type -->
-      <div class="edition-toggle">
-        <div class="edition-option active" data-edition="player">Player Edition</div>
-        <div class="edition-option" data-edition="fan">Fan Edition</div>
-      </div>
-      <input type="hidden" name="edition" value="player">
-      
-      <!-- Player Edition Fields -->
-      <div id="player-fields">
-        <input type="number" name="player_price" placeholder="Player Edition Price" step="0.01">
-        <input type="text" name="player_sku" placeholder="Player SKU">
-      </div>
-      
-      <!-- Fan Edition Fields -->
-      <div id="fan-fields" class="hidden">
-        <input type="number" name="fan_price" placeholder="Fan Edition Price" step="0.01">
-        <input type="text" name="fan_sku" placeholder="Fan SKU">
-      </div>
-      
       <!-- Common Fields -->
+      <input type="text" name="name" placeholder="Jersey Name (e.g. Barcelona 2023 Home)" required>
+      
       <div>
-        <label>Sizes Available:</label>
+        <label>Sizes Available (for all versions):</label>
         <div>
           <label><input type="checkbox" name="size" value="S"> S</label>
           <label><input type="checkbox" name="size" value="M"> M</label>
@@ -64,45 +59,69 @@
           <label><input type="checkbox" name="size" value="XL"> XL</label>
         </div>
       </div>
-      
-      <button type="button" onclick="saveJersey()">Save Jersey</button>
+
+      <!-- Version Tabs -->
+      <div class="version-tabs">
+        <div class="version-tab active" data-version="player">Player</div>
+        <div class="version-tab" data-version="fan">Fan</div>
+        <div class="version-tab" data-version="bd">BD</div>
+        <div class="version-tab" data-version="retro">Retro</div>
+        <div class="version-tab" data-version="imported">Imported</div>
+      </div>
+
+      <!-- Version Contents -->
+      <div id="player-content" class="version-content active">
+        <h3><span class="version-badge player">Player Edition</span></h3>
+        <input type="number" name="player_price" placeholder="Price" step="0.01">
+        <input type="text" name="player_sku" placeholder="SKU">
+        <textarea name="player_desc" placeholder="Special features"></textarea>
+      </div>
+
+      <div id="fan-content" class="version-content">
+        <h3><span class="version-badge fan">Fan Edition</span></h3>
+        <input type="number" name="fan_price" placeholder="Price" step="0.01">
+        <input type="text" name="fan_sku" placeholder="SKU">
+      </div>
+
+      <!-- Add similar blocks for BD/Retro/Imported -->
+
+      <button type="button" onclick="saveJersey()">Save All Versions</button>
     </form>
   </div>
 
   <script>
-    // Toggle between editions
-    document.querySelectorAll('.edition-option').forEach(option => {
-      option.addEventListener('click', function() {
-        document.querySelectorAll('.edition-option').forEach(opt => 
-          opt.classList.remove('active'));
+    // Tab switching
+    document.querySelectorAll('.version-tab').forEach(tab => {
+      tab.addEventListener('click', function() {
+        document.querySelectorAll('.version-tab, .version-content').forEach(el => 
+          el.classList.remove('active'));
         this.classList.add('active');
-        
-        document.querySelector('input[name="edition"]').value = this.dataset.edition;
-        document.getElementById('player-fields').classList.toggle('hidden', this.dataset.edition !== 'player');
-        document.getElementById('fan-fields').classList.toggle('hidden', this.dataset.edition !== 'fan');
+        document.getElementById(`${this.dataset.version}-content`).classList.add('active');
       });
     });
 
-    // Save function
+    // Save all versions
     function saveJersey() {
       const form = document.getElementById('jerseyForm');
       const jersey = {
         name: form.name.value,
-        editions: {
+        sizes: Array.from(document.querySelectorAll('input[name="size"]:checked')).map(cb => cb.value),
+        versions: {
           player: {
             price: form.player_price.value,
-            sku: form.player_sku.value
+            sku: form.player_sku.value,
+            desc: form.player_desc.value
           },
           fan: {
             price: form.fan_price.value,
             sku: form.fan_sku.value
           }
-        },
-        sizes: Array.from(document.querySelectorAll('input[name="size"]:checked')).map(cb => cb.value)
+          // Add BD/Retro/Imported here
+        }
       };
       
-      console.log('Saving:', jersey);
-      alert('Jersey saved with both editions! Check console for data structure.');
+      console.log('Complete Jersey:', jersey);
+      alert('All versions saved in one entry!');
     }
   </script>
 </body>
