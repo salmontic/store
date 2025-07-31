@@ -1,25 +1,37 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Store Manager</title>
+  <title>Jersey Manager</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
-    .manager-panel {
-      max-width: 600px;
-      margin: 20px auto;
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 1000px;
+      margin: 0 auto;
       padding: 20px;
-      background: #f8f9fa;
+      background: #f5f5f5;
+    }
+    .card {
+      background: white;
+      padding: 20px;
       border-radius: 8px;
       box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
     }
     .form-group {
       margin-bottom: 15px;
     }
-    input, textarea {
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    input, select, textarea {
       width: 100%;
       padding: 10px;
       border: 1px solid #ddd;
       border-radius: 4px;
+      box-sizing: border-box;
     }
     button {
       background: #4CAF50;
@@ -28,121 +40,385 @@
       padding: 12px 20px;
       border-radius: 4px;
       cursor: pointer;
+      font-size: 16px;
+      margin-right: 10px;
+    }
+    button.delete {
+      background: #f44336;
+    }
+    .size-checkboxes {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 5px;
+    }
+    .size-checkbox {
+      display: flex;
+      align-items: center;
+    }
+    .image-preview {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .image-preview img {
+      width: 100px;
+      height: 100px;
+      object-fit: cover;
+      border-radius: 4px;
+    }
+    .edition-tag {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      margin-right: 5px;
+      color: white;
     }
   </style>
 </head>
 <body>
-  <div class="manager-panel">
-    <h2>Jersey Manager</h2>
+  <div class="card">
+    <h1>Jersey Manager</h1>
     <form id="jerseyForm">
       <div class="form-group">
-        <input type="text" name="name" placeholder="Jersey Name" required>
+        <label>Jersey Name</label>
+        <input type="text" name="name" required>
       </div>
+      
       <div class="form-group">
-        <input type="number" name="price" placeholder="Price" step="0.01" required>
+        <label>Edition Type</label>
+        <select name="edition" required>
+          <option value="Fan">Fan Edition</option>
+          <option value="Player">Player Edition</option>
+          <option value="BD">BD Edition</option>
+          <option value="Retro">Retro Edition</option>
+          <option value="Imported">Imported</option>
+        </select>
       </div>
+      
       <div class="form-group">
-        <input type="text" name="sizes" placeholder="Sizes (S,M,L,XL)" required>
+        <label>Price ($)</label>
+        <input type="number" name="price" step="0.01" required>
       </div>
+      
       <div class="form-group">
-        <textarea name="description" placeholder="Description"></textarea>
+        <label>Available Sizes</label>
+        <div class="size-checkboxes">
+          <label class="size-checkbox"><input type="checkbox" name="size" value="S"> S</label>
+          <label class="size-checkbox"><input type="checkbox" name="size" value="M"> M</label>
+          <label class="size-checkbox"><input type="checkbox" name="size" value="L"> L</label>
+          <label class="size-checkbox"><input type="checkbox" name="size" value="XL"> XL</label>
+          <label class="size-checkbox"><input type="checkbox" name="size" value="XXL"> XXL</label>
+          <label class="size-checkbox"><input type="checkbox" name="size" value="XXXL"> XXXL</label>
+        </div>
       </div>
+      
       <div class="form-group">
-        <input type="text" name="image" placeholder="Image filename (upload first)">
+        <label>Description</label>
+        <textarea name="description"></textarea>
       </div>
-      <button type="button" onclick="saveJersey()">Save Product</button>
+      
+      <div class="form-group">
+        <label>Upload Images (Max 5)</label>
+        <input type="file" id="imageUpload" multiple accept="image/*" max="5">
+        <div class="image-preview" id="imagePreview"></div>
+      </div>
+      
+      <button type="button" onclick="saveJersey()">Save Jersey</button>
     </form>
-    <p id="status"></p>
-    
-    <h3>Upload Images</h3>
-    <input type="file" id="imageUpload" accept="image/*">
-    <button onclick="uploadImage()">Upload to GitHub</button>
+  </div>
+
+  <div class="card">
+    <h2>Current Jerseys</h2>
+    <div id="jerseyList"></div>
   </div>
 
   <script>
-    const USERNAME = 'salmontic';
-    const REPO = 'store';
-    const TOKEN = 'ghp_your_token_here'; // From GitHub Settings > Tokens
+    // Configuration
+    const CONFIG = {
+      GITHUB_USER: 'salmontic',
+      REPO: 'store',
+      TOKEN: 'ghp_yourtokenhere', // From GitHub Settings > Tokens
+      MAX_IMAGES: 5,
+      EDITION_COLORS: {
+        Fan: '#2196F3',
+        Player: '#4CAF50',
+        BD: '#9C27B0',
+        Retro: '#FF9800',
+        Imported: '#607D8B'
+      }
+    };
 
-    async function saveJersey() {
-      const form = document.getElementById('jerseyForm');
-      const jersey = {
-        name: form.name.value,
-        price: parseFloat(form.price.value),
-        sizes: form.sizes.value.split(',').map(s => s.trim()),
-        description: form.description.value,
-        image: form.image.value || 'default.jpg'
-      };
+    // Global variables
+    let uploadedImages = [];
+    
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+      loadJerseys();
+      setupImageUpload();
+    });
 
-      // Get existing jerseys
-      let jerseys = [];
+    // Setup image upload preview
+    function setupImageUpload() {
+      document.getElementById('imageUpload').addEventListener('change', function(e) {
+        const files = e.target.files;
+        const preview = document.getElementById('imagePreview');
+        preview.innerHTML = '';
+        
+        if (files.length > CONFIG.MAX_IMAGES) {
+          alert(`Maximum ${CONFIG.MAX_IMAGES} images allowed`);
+          this.value = '';
+          return;
+        }
+        
+        uploadedImages = [];
+        for (let i = 0; i < files.length; i++) {
+          const reader = new FileReader();
+          reader.onload = function(event) {
+            const img = document.createElement('img');
+            img.src = event.target.result;
+            preview.appendChild(img);
+            uploadedImages.push({
+              name: files[i].name,
+              data: event.target.result.split(',')[1] // Base64 data
+            });
+          };
+          reader.readAsDataURL(files[i]);
+        }
+      });
+    }
+
+    // Load existing jerseys
+    async function loadJerseys() {
       try {
         const response = await fetch('jerseys.json');
-        jerseys = await response.json();
-      } catch(e) {/* File doesn't exist yet */}
-      
-      // Add new jersey
-      jerseys.push(jersey);
-      
-      // Update GitHub
-      try {
-        const sha = await getFileSHA('jerseys.json');
-        await updateGitHubFile('jerseys.json', JSON.stringify(jerseys), sha);
-        document.getElementById('status').textContent = '✅ Jersey saved!';
-        form.reset();
-      } catch(error) {
-        document.getElementById('status').textContent = '❌ Error: ' + error.message;
+        const jerseys = await response.json();
+        displayJerseys(jerseys);
+      } catch (e) {
+        console.log('No jerseys.json found yet');
       }
     }
 
-    async function uploadImage() {
-      const fileInput = document.getElementById('imageUpload');
-      if (!fileInput.files.length) return;
+    // Display jerseys in admin panel
+    function displayJerseys(jerseys) {
+      const container = document.getElementById('jerseyList');
+      container.innerHTML = '';
       
-      const file = fileInput.files[0];
-      const filename = `images/${Date.now()}_${file.name}`;
+      if (!jerseys || jerseys.length === 0) {
+        container.innerHTML = '<p>No jerseys added yet</p>';
+        return;
+      }
       
-      // Convert to Base64
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
+      jerseys.forEach((jersey, index) => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.style.marginBottom = '15px';
+        
+        // Create edition tag with color
+        const editionTag = document.createElement('span');
+        editionTag.className = 'edition-tag';
+        editionTag.textContent = jersey.edition;
+        editionTag.style.backgroundColor = CONFIG.EDITION_COLORS[jersey.edition] || '#777';
+        
+        card.innerHTML = `
+          <div style="display:flex; justify-content:space-between; align-items:center">
+            <h3>${jersey.name}</h3>
+            <div>
+              <button onclick="editJersey(${index})">Edit</button>
+              <button onclick="deleteJersey(${index})" class="delete">Delete</button>
+            </div>
+          </div>
+          <div style="margin: 10px 0">${editionTag.outerHTML} $${jersey.price}</div>
+          <p><strong>Sizes:</strong> ${jersey.sizes.join(', ')}</p>
+          ${jersey.description ? `<p>${jersey.description}</p>` : ''}
+          <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 15px;">
+            ${jersey.images.map(img => `<img src="${img}" style="width: 100px; height: 100px; object-fit: cover;">`).join('')}
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    // Save new jersey
+    async function saveJersey() {
+      const form = document.getElementById('jerseyForm');
+      const name = form.name.value.trim();
+      const edition = form.edition.value;
+      const price = parseFloat(form.price.value);
+      const description = form.description.value.trim();
       
-      reader.onload = async () => {
-        const content = reader.result.split(',')[1]; // Remove data URL prefix
-        try {
-          await updateGitHubFile(filename, content);
-          document.getElementById('status').textContent = `✅ Image uploaded! Use: ${filename}`;
-        } catch(error) {
-          document.getElementById('status').textContent = '❌ Upload failed: ' + error.message;
+      // Get selected sizes
+      const sizes = [];
+      document.querySelectorAll('input[name="size"]:checked').forEach(checkbox => {
+        sizes.push(checkbox.value);
+      });
+      
+      if (!name || !edition || isNaN(price) || sizes.length === 0) {
+        alert('Please fill all required fields');
+        return;
+      }
+      
+      try {
+        // 1. Upload images first
+        const imageUrls = [];
+        for (const img of uploadedImages) {
+          const path = `images/${Date.now()}_${img.name}`;
+          await uploadToGitHub(path, img.data);
+          imageUrls.push(`https://${CONFIG.GITHUB_USER}.github.io/${CONFIG.REPO}/${path}`);
         }
-      };
+        
+        // 2. Get existing jerseys
+        let jerseys = [];
+        try {
+          const response = await fetch('jerseys.json');
+          jerseys = await response.json();
+        } catch (e) {
+          console.log('Creating new jerseys.json');
+        }
+        
+        // 3. Add new jersey
+        jerseys.push({
+          name,
+          edition,
+          price,
+          sizes,
+          description,
+          images: imageUrls,
+          createdAt: new Date().toISOString()
+        });
+        
+        // 4. Update jerseys.json
+        await updateOnGitHub('jerseys.json', JSON.stringify(jerseys, null, 2));
+        
+        // 5. Reset form and refresh
+        form.reset();
+        document.getElementById('imagePreview').innerHTML = '';
+        uploadedImages = [];
+        loadJerseys();
+        alert('Jersey saved successfully!');
+      } catch (error) {
+        alert('Error saving jersey: ' + error.message);
+        console.error(error);
+      }
     }
 
-    async function getFileSHA(path) {
+    // Upload file to GitHub
+    async function uploadToGitHub(path, content) {
       const response = await fetch(
-        `https://api.github.com/repos/${USERNAME}/${REPO}/contents/${path}`,
-        { headers: { 'Authorization': `token ${TOKEN}` } }
-      );
-      const data = await response.json();
-      return data.sha;
-    }
-
-    async function updateGitHubFile(path, content, sha = '') {
-      const response = await fetch(
-        `https://api.github.com/repos/${USERNAME}/${REPO}/contents/${path}`,
+        `https://api.github.com/repos/${CONFIG.GITHUB_USER}/${CONFIG.REPO}/contents/${path}`,
         {
           method: 'PUT',
           headers: {
-            'Authorization': `token ${TOKEN}`,
+            'Authorization': `token ${CONFIG.TOKEN}`,
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            message: 'Update store content',
-            content: btoa(content),
-            sha: sha || undefined
+            message: 'Upload jersey image',
+            content: content
           })
         }
       );
       return response.json();
+    }
+
+    // Update file on GitHub
+    async function updateOnGitHub(path, content) {
+      // Get current SHA if file exists
+      let sha = '';
+      try {
+        const shaResponse = await fetch(
+          `https://api.github.com/repos/${CONFIG.GITHUB_USER}/${CONFIG.REPO}/contents/${path}`,
+          { headers: { 'Authorization': `token ${CONFIG.TOKEN}` } }
+        );
+        const shaData = await shaResponse.json();
+        sha = shaData.sha;
+      } catch (e) {
+        console.log('Creating new file');
+      }
+      
+      const response = await fetch(
+        `https://api.github.com/repos/${CONFIG.GITHUB_USER}/${CONFIG.REPO}/contents/${path}`,
+        {
+          method: 'PUT',
+          headers: {
+            'Authorization': `token ${CONFIG.TOKEN}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            message: 'Update jerseys',
+            content: btoa(content),
+            sha: sha
+          })
+        }
+      );
+      return response.json();
+    }
+
+    // Delete jersey
+    async function deleteJersey(index) {
+      if (!confirm('Delete this jersey permanently?')) return;
+      
+      try {
+        const response = await fetch('jerseys.json');
+        let jerseys = await response.json();
+        
+        // Get image paths to delete
+        const imagesToDelete = jerseys[index].images.map(img => {
+          return img.replace(`https://${CONFIG.GITHUB_USER}.github.io/${CONFIG.REPO}/`, '');
+        });
+        
+        // Delete images first
+        for (const imgPath of imagesToDelete) {
+          try {
+            await deleteFromGitHub(imgPath);
+          } catch (e) {
+            console.warn('Failed to delete image:', imgPath);
+          }
+        }
+        
+        // Remove jersey from list
+        jerseys.splice(index, 1);
+        
+        // Update jerseys.json
+        await updateOnGitHub('jerseys.json', JSON.stringify(jerseys, null, 2));
+        loadJerseys();
+      } catch (error) {
+        alert('Error deleting jersey: ' + error.message);
+      }
+    }
+
+    // Delete file from GitHub
+    async function deleteFromGitHub(path) {
+      // Get current SHA
+      const shaResponse = await fetch(
+        `https://api.github.com/repos/${CONFIG.GITHUB_USER}/${CONFIG.REPO}/contents/${path}`,
+        { headers: { 'Authorization': `token ${CONFIG.TOKEN}` } }
+      );
+      const shaData = await shaResponse.json();
+      
+      const response = await fetch(
+        `https://api.github.com/repos/${CONFIG.GITHUB_USER}/${CONFIG.REPO}/contents/${path}`,
+        {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `token ${CONFIG.TOKEN}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            message: 'Delete jersey image',
+            sha: shaData.sha
+          })
+        }
+      );
+      return response.json();
+    }
+
+    // Edit jersey
+    async function editJersey(index) {
+      // Implementation for editing existing jerseys
+      alert('Edit functionality will be implemented next');
     }
   </script>
 </body>
