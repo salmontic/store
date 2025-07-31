@@ -1,127 +1,365 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Jersey Admin - Multi-Version</title>
+  <title>Ultimate Jersey Admin</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
-    .version-tabs {
-      display: flex;
+    :root {
+      --player: #4CAF50;
+      --fan: #2196F3;
+      --bd: #9C27B0;
+      --retro: #FF9800;
+      --imported: #607D8B;
+      --home: #FF0000;
+      --away: #FFFFFF;
+      --third: #000000;
+      --fourth: #FFD700;
+    }
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .card {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: bold;
+      margin-right: 5px;
+    }
+    .version-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 10px;
       margin: 15px 0;
+    }
+    .version-card {
+      border: 1px solid #ddd;
+      padding: 10px;
+      border-radius: 5px;
+    }
+    .toggle-switch {
+      position: relative;
+      display: inline-block;
+      width: 50px;
+      height: 24px;
+      float: right;
+    }
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #ccc;
+      transition: .4s;
+      border-radius: 24px;
+    }
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 16px;
+      width: 16px;
+      left: 4px;
+      bottom: 4px;
+      background-color: white;
+      transition: .4s;
+      border-radius: 50%;
+    }
+    input:checked + .slider {
+      background-color: #4CAF50;
+    }
+    input:checked + .slider:before {
+      transform: translateX(26px);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th, td {
+      padding: 12px;
+      text-align: left;
       border-bottom: 1px solid #ddd;
     }
-    .version-tab {
-      padding: 8px 15px;
-      cursor: pointer;
-      border: 1px solid transparent;
-      margin-right: 5px;
-    }
-    .version-tab.active {
-      border: 1px solid #ddd;
-      border-bottom: 1px solid white;
-      margin-bottom: -1px;
-      background: #f9f9f9;
-    }
-    .version-content {
-      display: none;
-      padding: 15px;
-      border: 1px solid #ddd;
-      border-top: none;
-    }
-    .version-content.active {
-      display: block;
-    }
-    .version-badge {
-      display: inline-block;
-      padding: 2px 6px;
+    .action-btn {
+      padding: 5px 10px;
+      margin: 0 3px;
+      border: none;
       border-radius: 3px;
-      font-size: 12px;
-      margin-right: 5px;
+      cursor: pointer;
     }
-    .player { background: #4CAF50; color: white; }
-    .fan { background: #2196F3; color: white; }
-    .bd { background: #9C27B0; color: white; }
-    .retro { background: #FF9800; color: black; }
-    .imported { background: #607D8B; color: white; }
+    .edit-btn { background: #FFC107; }
+    .delete-btn { background: #F44336; color: white; }
   </style>
 </head>
 <body>
   <div class="card">
-    <h1>Add Jersey</h1>
-    <form id="jerseyForm">
-      <!-- Common Fields -->
-      <input type="text" name="name" placeholder="Jersey Name (e.g. Barcelona 2023 Home)" required>
-      
-      <div>
-        <label>Sizes Available (for all versions):</label>
+    <h1>Jersey Management</h1>
+    
+    <!-- Edition Selection -->
+    <div>
+      <label>Edition:</label>
+      <select id="edition">
+        <option value="home">Home</option>
+        <option value="away">Away</option>
+        <option value="third">Third</option>
+        <option value="fourth">Fourth</option>
+      </select>
+    </div>
+    
+    <!-- Common Jersey Info -->
+    <div>
+      <label>Jersey Name:</label>
+      <input type="text" id="jerseyName" placeholder="e.g. Barcelona 2023" style="width:100%;padding:8px;">
+    </div>
+    
+    <!-- Version Management -->
+    <h3>Available Versions</h3>
+    <div class="version-grid">
+      <!-- Player Version -->
+      <div class="version-card">
         <div>
-          <label><input type="checkbox" name="size" value="S"> S</label>
-          <label><input type="checkbox" name="size" value="M"> M</label>
-          <label><input type="checkbox" name="size" value="L"> L</label>
-          <label><input type="checkbox" name="size" value="XL"> XL</label>
+          <span class="badge" style="background:var(--player)">Player</span>
+          <label class="toggle-switch">
+            <input type="checkbox" id="player-toggle" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div id="player-fields">
+          <input type="number" id="player-price" placeholder="Price" step="0.01" style="width:100%;margin-top:5px;">
+          <input type="text" id="player-sku" placeholder="SKU" style="width:100%;margin-top:5px;">
         </div>
       </div>
-
-      <!-- Version Tabs -->
-      <div class="version-tabs">
-        <div class="version-tab active" data-version="player">Player</div>
-        <div class="version-tab" data-version="fan">Fan</div>
-        <div class="version-tab" data-version="bd">BD</div>
-        <div class="version-tab" data-version="retro">Retro</div>
-        <div class="version-tab" data-version="imported">Imported</div>
+      
+      <!-- Fan Version -->
+      <div class="version-card">
+        <div>
+          <span class="badge" style="background:var(--fan)">Fan</span>
+          <label class="toggle-switch">
+            <input type="checkbox" id="fan-toggle" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div id="fan-fields">
+          <input type="number" id="fan-price" placeholder="Price" step="0.01" style="width:100%;margin-top:5px;">
+          <input type="text" id="fan-sku" placeholder="SKU" style="width:100%;margin-top:5px;">
+        </div>
       </div>
-
-      <!-- Version Contents -->
-      <div id="player-content" class="version-content active">
-        <h3><span class="version-badge player">Player Edition</span></h3>
-        <input type="number" name="player_price" placeholder="Price" step="0.01">
-        <input type="text" name="player_sku" placeholder="SKU">
-        <textarea name="player_desc" placeholder="Special features"></textarea>
-      </div>
-
-      <div id="fan-content" class="version-content">
-        <h3><span class="version-badge fan">Fan Edition</span></h3>
-        <input type="number" name="fan_price" placeholder="Price" step="0.01">
-        <input type="text" name="fan_sku" placeholder="SKU">
-      </div>
-
-      <!-- Add similar blocks for BD/Retro/Imported -->
-
-      <button type="button" onclick="saveJersey()">Save All Versions</button>
-    </form>
+      
+      <!-- Add BD/Retro/Imported versions similarly -->
+    </div>
+    
+    <!-- Sizes -->
+    <h3>Sizes Available</h3>
+    <div>
+      <label><input type="checkbox" name="size" value="S"> S</label>
+      <label><input type="checkbox" name="size" value="M"> M</label>
+      <label><input type="checkbox" name="size" value="L"> L</label>
+      <label><input type="checkbox" name="size" value="XL"> XL</label>
+      <label><input type="checkbox" name="size" value="XXL"> XXL</label>
+    </div>
+    
+    <!-- Images -->
+    <h3>Images</h3>
+    <input type="file" id="imageUpload" multiple accept="image/*">
+    <div id="imagePreview" style="margin-top:10px;"></div>
+    
+    <button onclick="saveJersey()" style="margin-top:20px;padding:10px 15px;background:#4CAF50;color:white;border:none;border-radius:4px;">
+      Save Jersey
+    </button>
+  </div>
+  
+  <!-- Jersey List -->
+  <div class="card">
+    <h2>Current Jerseys</h2>
+    <table id="jerseyTable">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Edition</th>
+          <th>Versions</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="jerseyList"></tbody>
+    </table>
   </div>
 
   <script>
-    // Tab switching
-    document.querySelectorAll('.version-tab').forEach(tab => {
-      tab.addEventListener('click', function() {
-        document.querySelectorAll('.version-tab, .version-content').forEach(el => 
-          el.classList.remove('active'));
-        this.classList.add('active');
-        document.getElementById(`${this.dataset.version}-content`).classList.add('active');
-      });
+    // Sample data storage
+    let jerseys = [];
+    let currentEditId = null;
+    
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+      loadJerseys();
+      setupImagePreview();
     });
-
-    // Save all versions
+    
+    // Image preview
+    function setupImagePreview() {
+      document.getElementById('imageUpload').addEventListener('change', function(e) {
+        const preview = document.getElementById('imagePreview');
+        preview.innerHTML = '';
+        
+        Array.from(e.target.files).forEach(file => {
+          const reader = new FileReader();
+          reader.onload = function(event) {
+            const img = document.createElement('img');
+            img.src = event.target.result;
+            img.style.width = '100px';
+            img.style.height = '100px';
+            img.style.objectFit = 'cover';
+            img.style.marginRight = '10px';
+            preview.appendChild(img);
+          };
+          reader.readAsDataURL(file);
+        });
+      });
+    }
+    
+    // Save/Update jersey
     function saveJersey() {
-      const form = document.getElementById('jerseyForm');
       const jersey = {
-        name: form.name.value,
-        sizes: Array.from(document.querySelectorAll('input[name="size"]:checked')).map(cb => cb.value),
-        versions: {
-          player: {
-            price: form.player_price.value,
-            sku: form.player_sku.value,
-            desc: form.player_desc.value
-          },
-          fan: {
-            price: form.fan_price.value,
-            sku: form.fan_sku.value
-          }
-          // Add BD/Retro/Imported here
-        }
+        id: currentEditId || Date.now().toString(),
+        name: document.getElementById('jerseyName').value,
+        edition: document.getElementById('edition').value,
+        versions: {},
+        sizes: [],
+        images: [] // You'll implement image upload separately
       };
       
-      console.log('Complete Jersey:', jersey);
-      alert('All versions saved in one entry!');
+      // Get active versions
+      if (document.getElementById('player-toggle').checked) {
+        jersey.versions.player = {
+          price: parseFloat(document.getElementById('player-price').value),
+          sku: document.getElementById('player-sku').value
+        };
+      }
+      
+      if (document.getElementById('fan-toggle').checked) {
+        jersey.versions.fan = {
+          price: parseFloat(document.getElementById('fan-price').value),
+          sku: document.getElementById('fan-sku').value
+        };
+      }
+      
+      // Add BD/Retro/Imported versions similarly
+      
+      // Get selected sizes
+      document.querySelectorAll('input[name="size"]:checked').forEach(checkbox => {
+        jersey.sizes.push(checkbox.value);
+      });
+      
+      // Update or add new
+      if (currentEditId) {
+        const index = jerseys.findIndex(j => j.id === currentEditId);
+        jerseys[index] = jersey;
+      } else {
+        jerseys.push(jersey);
+      }
+      
+      // Reset form
+      resetForm();
+      loadJerseys();
+      alert('Jersey saved!');
+    }
+    
+    // Load jerseys into table
+    function loadJerseys() {
+      const tbody = document.getElementById('jerseyList');
+      tbody.innerHTML = '';
+      
+      jerseys.forEach(jersey => {
+        const versions = Object.keys(jersey.versions).map(v => {
+          return `<span class="badge" style="background:var(--${v})">${v} ($${jersey.versions[v].price})</span>`;
+        }).join(' ');
+        
+        tbody.innerHTML += `
+          <tr>
+            <td>${jersey.name}</td>
+            <td><span class="badge" style="background:var(--${jersey.edition})">${jersey.edition}</span></td>
+            <td>${versions}</td>
+            <td>
+              <button class="action-btn edit-btn" onclick="editJersey('${jersey.id}')">Edit</button>
+              <button class="action-btn delete-btn" onclick="deleteJersey('${jersey.id}')">Delete</button>
+            </td>
+          </tr>
+        `;
+      });
+    }
+    
+    // Edit jersey
+    function editJersey(id) {
+      const jersey = jerseys.find(j => j.id === id);
+      if (!jersey) return;
+      
+      currentEditId = id;
+      
+      // Set basic info
+      document.getElementById('jerseyName').value = jersey.name;
+      document.getElementById('edition').value = jersey.edition;
+      
+      // Set versions
+      document.getElementById('player-toggle').checked = !!jersey.versions.player;
+      document.getElementById('fan-toggle').checked = !!jersey.versions.fan;
+      if (jersey.versions.player) {
+        document.getElementById('player-price').value = jersey.versions.player.price;
+        document.getElementById('player-sku').value = jersey.versions.player.sku;
+      }
+      if (jersey.versions.fan) {
+        document.getElementById('fan-price').value = jersey.versions.fan.price;
+        document.getElementById('fan-sku').value = jersey.versions.fan.sku;
+      }
+      
+      // Set sizes
+      document.querySelectorAll('input[name="size"]').forEach(checkbox => {
+        checkbox.checked = jersey.sizes.includes(checkbox.value);
+      });
+      
+      // Scroll to form
+      document.querySelector('.card').scrollIntoView();
+    }
+    
+    // Delete jersey
+    function deleteJersey(id) {
+      if (confirm('Delete this jersey permanently?')) {
+        jerseys = jerseys.filter(j => j.id !== id);
+        loadJerseys();
+      }
+    }
+    
+    // Reset form
+    function resetForm() {
+      document.getElementById('jerseyName').value = '';
+      document.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+      document.getElementById('imagePreview').innerHTML = '';
+      document.getElementById('imageUpload').value = '';
+      currentEditId = null;
+      
+      // Reset versions to default
+      document.getElementById('player-toggle').checked = true;
+      document.getElementById('fan-toggle').checked = true;
+      document.getElementById('player-price').value = '';
+      document.getElementById('player-sku').value = '';
+      document.getElementById('fan-price').value = '';
+      document.getElementById('fan-sku').value = '';
     }
   </script>
 </body>
